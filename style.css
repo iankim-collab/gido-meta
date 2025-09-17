@@ -1,0 +1,83 @@
+body {
+    background-color: #0d0d0d;
+    color: #00ff00;
+    font-family: 'Press Start 2P', cursive;
+    text-align: center;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    border: 3px solid #00ff00;
+    padding: 20px;
+    box-shadow: 0 0 15px #00ff00;
+}
+
+h1 {
+    font-size: 2em;
+    text-shadow: 3px 3px #ff00ff;
+}
+
+.subtitle {
+    font-size: 1em;
+    color: #ffffff;
+    margin-top: -10px;
+}
+
+.date {
+    color: #ffff00;
+    margin-bottom: 30px;
+}
+
+.idea-card {
+    background-color: #1a1a1a;
+    border: 2px solid #00ff00;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.idea-text {
+    font-size: 1.1em;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.vote-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vote-button {
+    background-color: #ff00ff;
+    color: #ffffff;
+    font-family: 'Press Start 2P', cursive;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.vote-button:hover {
+    background-color: #ffffff;
+    color: #ff00ff;
+}
+
+.vote-count {
+    font-size: 1.2em;
+    color: #ffff00;
+}
+
+footer {
+    margin-top: 30px;
+    font-size: 0.8em;
+    color: #888888;
+}
+
+/* style.css 파일 하단에 추가 */
+.vote-button.voted {
+    background-color: #00ff00; /* 녹색 */
+    color: #0d0d0d; /* 검은색 */
+}
