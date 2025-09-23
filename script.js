@@ -7,11 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
     
     const initialIdeas = [
-        { id: 1, text: "푸시 메시지에 이모지(✨)를 추가하면 오픈율이 10% 오를 것 같아요!" },
-        { id: 2, text: "인스타 광고 문구를 '~제공' 대신 '~챙겨가세요'로 바꾸면 클릭률이 오를 것 같아요!" },
-        { id: 3, text: "매주 금요일에 '이번 주말 빈방' 리스트를 스토리로 올리면 즉흥 예약이 늘 것 같아요!" },
-        { id: 4, text: "노티플라이를 통해, 고객이 앱 이탈할 때 특가 객실 팝업 띄워주면 체류시간이 늘 것 같아요!" },
-        { id: 5, text: "팀 미팅 PDCA 작성할 때 지금까지 진행 상황에 대해 별표시로 자평 하는 한 줄이 있으면 다른 사람들도 상황 파악이 쉬울 것 같아요!" }
+        { id: 1, text: "-" },
+        { id: 2, text: "-" },
+        { id: 3, text: "-" },
+        { id: 4, text: "-" },
+        { id: 5, text: "-" }
     ];
 
     const ideasContainer = document.getElementById('ideas-container');
