@@ -8,12 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const ideasContainer = document.getElementById('ideas-container');
     const statusContainer = document.getElementById('vote-status');
     const dateContainer = document.getElementById('vote-date');
-    let fullData = {}; // 서버에서 받은 전체 데이터를 저장할 변수
+    let fullData = {}; 
 
     // --- 핵심 함수 ---
     async function loadDataAndRender() {
         try {
+            // 캐시를 무시하고 항상 최신 데이터를 가져오도록 설정
             const response = await fetch(`${JSONBIN_URL}/latest`, { 
+                cache: 'no-cache',
                 headers: { 'X-Master-Key': API_KEY, 'X-Bin-Meta': false } 
             });
             if (!response.ok) throw new Error('Failed to load data');
@@ -41,13 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPage() {
-        // 데이터가 비어있으면 렌더링 중단
-        if (!fullData || !fullData.voteConfig || !fullData.ideas || !fullData.votes) {
+        if (!fullData || !fullData.voteConfig || !fullData.ideas || !full.Data.votes) {
+            console.error("데이터 구조에 문제가 있습니다.", fullData);
             return;
         }
 
         const { voteConfig, ideas, votes } = fullData;
-        
         dateContainer.textContent = voteConfig.date || '';
         
         const now = new Date();
@@ -90,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleVote(event) {
-        // 데이터가 없으면 투표 처리 중단
         if (!fullData || !fullData.voteConfig || !fullData.votes) return;
         
         const { voteConfig, votes } = fullData;
@@ -98,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const startTime = new Date(voteConfig.startTime);
         const endTime = new Date(voteConfig.endTime);
 
-        // [수정된 부분] 투표 기간인지 먼저 확인하고, 아니면 안내 메시지(alert) 표시
         if (now < startTime) {
             alert(`투표는 ${voteConfig.startTime.replace('T', ' ')}부터 시작됩니다.`);
             return;
@@ -112,10 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
         const isAlreadyVoted = votedIds.includes(clickedId);
         
-        if (isAlreadyVoted) { // 투표 취소
+        if (isAlreadyVoted) {
             votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 1) - 1;
             votedIds = votedIds.filter(id => id !== clickedId);
-        } else { // 신규 투표
+        } else {
             if (votedIds.length >= 2) {
                 alert('최대 2개까지만 투표할 수 있습니다!');
                 return;
