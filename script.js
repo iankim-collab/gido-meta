@@ -15,15 +15,28 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // 캐시를 무시하고 항상 최신 데이터를 가져오도록 설정
             const response = await fetch(`${JSONBIN_URL}/latest`, { 
-                cache: 'no-cache',
+                cache: 'no-cache', // 캐시 미사용 설정
                 headers: { 'X-Master-Key': API_KEY, 'X-Bin-Meta': false } 
             });
-            if (!response.ok) throw new Error('Failed to load data');
+
+            if (!response.ok) {
+                // HTTP 오류 응답을 상세하게 로깅
+                const errorText = await response.text();
+                throw new Error(`Failed to load data: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+            
             fullData = await response.json();
+            
+            // 데이터 구조 유효성 검사 추가
+            if (!fullData || !fullData.voteConfig || !fullData.ideas || !fullData.votes) {
+                throw new Error("JSONBin 데이터 구조가 올바르지 않습니다. 'voteConfig', 'ideas', 'votes' 키가 필요합니다.");
+            }
+
             renderPage();
         } catch (error) {
             console.error("데이터 로딩 실패:", error);
             ideasContainer.innerHTML = '<p class="loading">데이터 로딩에 실패했습니다. 새로고침 해주세요.</p>';
+            statusContainer.textContent = '데이터 로딩 중 문제가 발생했습니다.'; // 상태 메시지 업데이트
         }
     }
 
@@ -43,9 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPage() {
-        if (!fullData || !fullData.voteConfig || !fullData.ideas || !full.Data.votes) {
-            console.error("데이터 구조에 문제가 있습니다.", fullData);
-            return;
+        // 데이터가 아직 로딩되지 않았거나 유효하지 않으면 렌더링 중단
+        if (!fullData || !fullData.voteConfig || !fullData.ideas || !fullData.votes) {
+            // loadDataAndRender에서 이미 에러 메시지를 띄웠으므로 여기서는 추가 작업 불필요
+            return; 
         }
 
         const { voteConfig, ideas, votes } = fullData;
@@ -64,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusContainer.textContent = '👇 마음에 드는 아이디어 2개에 투표하세요! 👇';
         }
 
-        ideasContainer.innerHTML = '';
+        ideasContainer.innerHTML = ''; // 기존 내용 지우고 새로 그리기
         const votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
 
         ideas.forEach(idea => {
@@ -91,13 +105,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleVote(event) {
-        if (!fullData || !fullData.voteConfig || !fullData.votes) return;
+        // 데이터가 없으면 투표 처리 중단
+        if (!fullData || !fullData.voteConfig || !fullData.votes) return; 
         
         const { voteConfig, votes } = fullData;
         const now = new Date();
         const startTime = new Date(voteConfig.startTime);
         const endTime = new Date(voteConfig.endTime);
 
+        // [수정된 부분] 투표 기간인지 먼저 확인하고, 아니면 안내 메시지(alert) 표시
         if (now < startTime) {
             alert(`투표는 ${voteConfig.startTime.replace('T', ' ')}부터 시작됩니다.`);
             return;
@@ -111,10 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
         const isAlreadyVoted = votedIds.includes(clickedId);
         
-        if (isAlreadyVoted) {
+        if (isAlreadyVoted) { // 투표 취소
             votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 1) - 1;
             votedIds = votedIds.filter(id => id !== clickedId);
-        } else {
+        } else { // 신규 투표
             if (votedIds.length >= 2) {
                 alert('최대 2개까지만 투표할 수 있습니다!');
                 return;
@@ -124,8 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         localStorage.setItem(voteConfig.votedIdsKey, JSON.stringify(votedIds));
-        renderPage(); 
-        saveData();   
+        renderPage(); // 화면 업데이트
+        saveData();   // 서버에 저장
     }
 
     loadDataAndRender();
