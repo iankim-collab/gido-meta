@@ -10,12 +10,16 @@
 <body>
     <div class="container">
         <header>
-            <h1>🙏 그로스팀 주간 기도메타 🙏</h1>
+            <h1>🙏 주간 기도메타 🙏</h1>
             <p class="subtitle">이번 주, 신에게 맡겨볼 단 하나의 아이디어는?</p>
-            <p class="date">투표 기간 2025년 9월 24일~25일</p>
+            <p id="vote-date" class="date"></p>
         </header>
         
-        <main id="ideas-container"></main> 
+        <div id="vote-status" class="vote-status-message"></div>
+
+        <main id="ideas-container">
+            <p class="loading">데이터를 불러오는 중...</p>
+        </main> 
         
         <footer>
             <p>마음에 드는 아이디어에 최대 2개까지 투표할 수 있습니다.</p>
