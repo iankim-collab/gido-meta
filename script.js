@@ -1,47 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- [중요!] 전달주신 API Key와 Bin ID를 반영했습니다. ---
+    // --- 설정 영역 ---
     const API_KEY = '$2a$10$BGtY5JIOZO3YmoIJFFYEVuBFmoTXtvpz1HdlF9OZPyHBjkcxp8BBC';
     const BIN_ID = '68ca43afd0ea881f40809888';
-    // --------------------------------------------------------------------
-
     const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
     
-    const initialIdeas = [
-        { id: 1, text: "-" },
-        { id: 2, text: "-" },
-        { id: 3, text: "-" },
-        { id: 4, text: "-" },
-        { id: 5, text: "-" }
-    ];
-
+    // --- 전역 변수 ---
     const ideasContainer = document.getElementById('ideas-container');
-    const votedIdsKey = `gidoMetaVotedIds-${BIN_ID}`; // Bin ID를 사용해 고유 키 생성
+    const statusContainer = document.getElementById('vote-status');
+    const dateContainer = document.getElementById('vote-date');
+    let fullData = {}; // 서버에서 받은 전체 데이터를 저장할 변수
 
-    let ideas = initialIdeas.map(idea => ({ ...idea, votes: 0 }));
-
-    async function loadVotes() {
+    // --- 핵심 함수 ---
+    async function loadDataAndRender() {
         try {
             const response = await fetch(`${JSONBIN_URL}/latest`, { 
-                headers: { 'X-Master-Key': API_KEY } 
+                headers: { 'X-Master-Key': API_KEY, 'X-Bin-Meta': false } 
             });
-            if (!response.ok) throw new Error('Failed to load votes');
-            const data = await response.json();
-            ideas = ideas.map(idea => ({
-                ...idea,
-                votes: data.record[`idea_${idea.id}`] || 0
-            }));
+            if (!response.ok) throw new Error('Failed to load data');
+            fullData = await response.json();
+            renderPage();
         } catch (error) {
-            console.error("득표수 로딩 실패:", error);
-        } finally {
-            renderIdeas();
+            console.error("데이터 로딩 실패:", error);
+            ideasContainer.innerHTML = '<p class="loading">데이터 로딩에 실패했습니다. 새로고침 해주세요.</p>';
         }
     }
 
-    async function saveVotes() {
-        const voteCounts = ideas.reduce((acc, idea) => {
-            acc[`idea_${idea.id}`] = idea.votes;
-            return acc;
-        }, {});
+    async function saveData() {
         try {
             await fetch(JSONBIN_URL, {
                 method: 'PUT',
@@ -49,18 +33,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'X-Master-Key': API_KEY
                 },
-                body: JSON.stringify(voteCounts)
+                body: JSON.stringify(fullData)
             });
         } catch (error) {
-            console.error("득표수 저장 실패:", error);
+            console.error("데이터 저장 실패:", error);
         }
     }
 
-    function renderIdeas() {
+    function renderPage() {
+        const { voteConfig, ideas, votes } = fullData;
+        
+        dateContainer.textContent = voteConfig.date || '';
+        
+        const now = new Date();
+        const startTime = new Date(voteConfig.startTime);
+        const endTime = new Date(voteConfig.endTime);
+        const isVotingActive = now >= startTime && now <= endTime;
+        
+        if (now < startTime) {
+            statusContainer.textContent = `투표는 ${voteConfig.startTime.replace('T', ' ')}부터 시작됩니다.`;
+        } else if (now > endTime) {
+            statusContainer.textContent = `투표가 마감되었습니다.`;
+        } else {
+            statusContainer.textContent = '👇 마음에 드는 아이디어 2개에 투표하세요! 👇';
+        }
+
         ideasContainer.innerHTML = '';
-        const votedIds = JSON.parse(localStorage.getItem(votedIdsKey)) || [];
+        const votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
 
         ideas.forEach(idea => {
+            const voteCount = votes[`idea_${idea.id}`] || 0;
             const isVoted = votedIds.includes(idea.id);
             const buttonText = isVoted ? '투표 취소' : '투표하기';
             const buttonClass = isVoted ? 'vote-button voted' : 'vote-button';
@@ -70,8 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
             card.innerHTML = `
                 <p class="idea-text">💡 ${idea.text}</p>
                 <div class="vote-area">
-                    <button class="${buttonClass}" data-id="${idea.id}">${buttonText}</button>
-                    <p class="vote-count">현재 득표: ${'🏆'.repeat(idea.votes)} (${idea.votes})</p>
+                    <button class="${buttonClass}" data-id="${idea.id}" ${!isVotingActive ? 'disabled' : ''}>${buttonText}</button>
+                    <p class="vote-count">현재 득표: ${'🏆'.repeat(voteCount)} (${voteCount})</p>
                 </div>
             `;
             ideasContainer.appendChild(card);
@@ -84,27 +86,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleVote(event) {
         const clickedId = parseInt(event.target.dataset.id);
-        let votedIds = JSON.parse(localStorage.getItem(votedIdsKey)) || [];
-        const ideaInDb = ideas.find(i => i.id === clickedId);
-        if (!ideaInDb) return;
-
+        const { voteConfig, votes } = fullData;
+        let votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
         const isAlreadyVoted = votedIds.includes(clickedId);
-        if (isAlreadyVoted) {
-            if (ideaInDb.votes > 0) ideaInDb.votes--;
+        
+        if (isAlreadyVoted) { // 투표 취소
+            votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 1) - 1;
             votedIds = votedIds.filter(id => id !== clickedId);
-        } else {
+        } else { // 신규 투표
             if (votedIds.length >= 2) {
                 alert('최대 2개까지만 투표할 수 있습니다!');
                 return;
             }
-            ideaInDb.votes++;
+            votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 0) + 1;
             votedIds.push(clickedId);
         }
         
-        localStorage.setItem(votedIdsKey, JSON.stringify(votedIds));
-        renderIdeas(); // 화면 즉시 업데이트
-        saveVotes();   // 서버에 저장 (백그라운드)
+        localStorage.setItem(voteConfig.votedIdsKey, JSON.stringify(votedIds));
+        renderPage(); 
+        saveData();   
     }
 
-    loadVotes();
+    loadDataAndRender();
 });
