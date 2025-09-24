@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ideasContainer = document.getElementById('ideas-container');
     const statusContainer = document.getElementById('vote-status');
     const dateContainer = document.getElementById('vote-date');
-    let fullData = {}; // 서버에서 받은 전체 데이터를 저장할 변수
+    let fullData = {}; 
 
     // --- 핵심 함수 ---
     async function loadDataAndRender() {
@@ -72,40 +72,4 @@ document.addEventListener('DOMContentLoaded', () => {
             card.innerHTML = `
                 <p class="idea-text">💡 ${idea.text}</p>
                 <div class="vote-area">
-                    <button class="${buttonClass}" data-id="${idea.id}" ${!isVotingActive ? 'disabled' : ''}>${buttonText}</button>
-                    <p class="vote-count">현재 득표: ${'🏆'.repeat(voteCount)} (${voteCount})</p>
-                </div>
-            `;
-            ideasContainer.appendChild(card);
-        });
-
-        document.querySelectorAll('.vote-button').forEach(button => {
-            button.addEventListener('click', handleVote);
-        });
-    }
-
-    function handleVote(event) {
-        const clickedId = parseInt(event.target.dataset.id);
-        const { voteConfig, votes } = fullData;
-        let votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
-        const isAlreadyVoted = votedIds.includes(clickedId);
-        
-        if (isAlreadyVoted) { // 투표 취소
-            votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 1) - 1;
-            votedIds = votedIds.filter(id => id !== clickedId);
-        } else { // 신규 투표
-            if (votedIds.length >= 2) {
-                alert('최대 2개까지만 투표할 수 있습니다!');
-                return;
-            }
-            votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 0) + 1;
-            votedIds.push(clickedId);
-        }
-        
-        localStorage.setItem(voteConfig.votedIdsKey, JSON.stringify(votedIds));
-        renderPage(); 
-        saveData();   
-    }
-
-    loadDataAndRender();
-});
+                    <button class="${buttonClass}" data-id="${idea.id}" ${!is
