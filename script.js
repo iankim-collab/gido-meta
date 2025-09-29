@@ -14,21 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadDataAndRender() {
         try {
             const response = await fetch(`${JSONBIN_URL}/latest`, { 
-                cache: 'no-cache', // 캐시 미사용 설정
+                cache: 'no-cache',
                 headers: { 'X-Master-Key': API_KEY, 'X-Bin-Meta': false } 
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to load data: ${response.status} ${response.statusText} - ${errorText}`);
-            }
-            
+            if (!response.ok) throw new Error('Failed to load data');
             fullData = await response.json();
-            
             if (!fullData || !fullData.voteConfig || !fullData.ideas || !fullData.votes) {
-                throw new Error("JSONBin 데이터 구조가 올바르지 않습니다. 'voteConfig', 'ideas', 'votes' 키가 필요합니다.");
+                throw new Error("JSONBin 데이터 구조가 올바르지 않습니다.");
             }
-
             renderPage();
         } catch (error) {
             console.error("데이터 로딩 실패:", error);
@@ -53,12 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPage() {
-        if (!fullData || !fullData.voteConfig || !fullData.ideas || !fullData.votes) {
-            return; 
-        }
+        if (!fullData.voteConfig) return; 
 
         const { voteConfig, ideas, votes } = fullData;
         dateContainer.textContent = voteConfig.date || '';
+        
+        // [수정된 부분] votedIdsKey를 voteConfig에서 가져오지 않고, endTime을 기준으로 동적으로 생성합니다.
+        const votedIdsKey = `gidoMetaVotedIds-${voteConfig.endTime}`;
         
         const now = new Date();
         const startTime = new Date(voteConfig.startTime);
@@ -74,14 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         ideasContainer.innerHTML = ''; 
-        const votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
+        const votedIds = JSON.parse(localStorage.getItem(votedIdsKey)) || [];
 
         ideas.forEach(idea => {
             const voteCount = votes[`idea_${idea.id}`] || 0;
             const isVoted = votedIds.includes(idea.id);
             const buttonText = isVoted ? '투표 취소' : '투표하기';
-            
-            // --- [수정된 부분]: disabled 속성 제거, CSS 클래스로 제어 ---
             const buttonClass = `vote-button ${isVoted ? 'voted' : ''} ${!isVotingActive ? 'disabled-btn' : ''}`;
 
             const card = document.createElement('div');
@@ -102,14 +94,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleVote(event) {
-        if (!fullData || !fullData.voteConfig || !fullData.votes) return; 
+        if (!fullData.voteConfig) return; 
         
         const { voteConfig, votes } = fullData;
+        
+        // [수정된 부분] votedIdsKey를 voteConfig에서 가져오지 않고, endTime을 기준으로 동적으로 생성합니다.
+        const votedIdsKey = `gidoMetaVotedIds-${voteConfig.endTime}`;
+        
         const now = new Date();
         const startTime = new Date(voteConfig.startTime);
         const endTime = new Date(voteConfig.endTime);
 
-        // [수정된 부분]: 투표 기간이 아닐 경우 alert 메시지 표시
         if (now < startTime) {
             alert(`투표는 ${voteConfig.startTime.replace('T', ' ')}부터 시작됩니다.`);
             return;
@@ -120,13 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const clickedId = parseInt(event.target.dataset.id);
-        let votedIds = JSON.parse(localStorage.getItem(voteConfig.votedIdsKey)) || [];
+        let votedIds = JSON.parse(localStorage.getItem(votedIdsKey)) || [];
         const isAlreadyVoted = votedIds.includes(clickedId);
         
-        if (isAlreadyVoted) { // 투표 취소
+        if (isAlreadyVoted) {
             votes[`idea_${clickedId}`] = (votes[`idea_${clickedId}`] || 1) - 1;
             votedIds = votedIds.filter(id => id !== clickedId);
-        } else { // 신규 투표
+        } else {
             if (votedIds.length >= 2) {
                 alert('최대 2개까지만 투표할 수 있습니다!');
                 return;
@@ -135,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             votedIds.push(clickedId);
         }
         
-        localStorage.setItem(voteConfig.votedIdsKey, JSON.stringify(votedIds));
+        localStorage.setItem(votedIdsKey, JSON.stringify(votedIds));
         renderPage(); 
         saveData();   
     }
